@@ -1,0 +1,383 @@
+<!DOCTYPE doctype PUBLIC "-//w3c//dtd html 4.0 transitional//en">
+<html lang="en-us"><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <meta name="GENERATOR" content="Mozilla/4.79 [en] (Win98; U)
+      [Netscape]">
+    <title>gw's CS 452 Lab</title></head>
+<body style="direction: ltr;" bgcolor="#ffffff">
+    <center>
+      <h2> CIS 452 Lab Week 6<br>
+        Shared Memory Synchronization</h2>
+    </center>
+    
+    <hr>
+    <h3> Overview</h3>
+The purpose of this assignment is to become familiar with the methods
+used for synchronizing process access to shared memory; specifically,
+the coordination of process' entry into their critical sections.&nbsp; The UNIX IPC
+package, in the form of shared memory and semaphores, will be
+investigated and used as the mechanism for controlling process
+synchronization. &nbsp;<br>
+    <h3>&nbsp;<br>
+    </h3>
+    <h3>Activities</h3>
+    <ul>
+      <li> Work your way through the following exercises, demonstrating
+        your
+        knowledge of the material by answering the numbered
+        questions.&nbsp;
+        The
+        lab and related programming exercise are intended to be
+        performed with
+        a partner.</li>
+      <li> Submit a detailed lab report (one per group).&nbsp; Include:</li><ul><li>the answers to
+        the
+        numbered questions</li><li>your final source code</li><li>output from a sample
+        run</li></ul>
+    </ul>
+    <h3>&nbsp;<br>
+    </h3>
+    <h3> The Shared Memory Problem</h3>
+    Because of its high speed and low overhead, developers often use
+    shared
+    memory
+    as an interprocess communication mechanism.&nbsp; This technique is
+    implemented by allowing processes to share the same data
+    space.&nbsp;
+    However, asynchronous access to shared memory may result in unusual
+    and
+    incorrect results.&nbsp; As mentioned in class and in your textbook,
+    shared memory access presents users with an instance of the Critical
+    Section problem.&nbsp; Recall the main issues involved with process
+    synchronization while studying the following program:
+    <p><u>Sample Program 1</u> </p>
+    <p><tt>#include &lt;stdio.h&gt;</tt> <br>
+      <tt>#include &lt;stdlib.h&gt;</tt> <br>
+      <tt>#include &lt;unistd.h&gt;</tt> <br>
+      <tt>#include &lt;sys/types.h&gt;</tt> <br>
+      <tt>#include &lt;sys/wait.h&gt;</tt> <br>
+      <tt>#include &lt;sys/ipc.h&gt;</tt> <br>
+      <tt>#include &lt;sys/shm.h&gt;<br>
+        #include &lt;sys/stat.h&gt;<br>
+      </tt> </p>
+    <p><tt>#define SIZE 16</tt> </p>
+    <p><tt>int main ()</tt> <br>
+      <tt>{</tt> <br>
+      <tt>&nbsp;&nbsp; int status;</tt> <br>
+      <tt>&nbsp;&nbsp; long int i, loop, temp, *shmPtr;</tt> <br>
+      <tt>&nbsp;&nbsp; int shmId;</tt> <br>
+      <tt>&nbsp;&nbsp; pid_t pid;</tt><b></b> </p>
+    <p><b>&nbsp; &nbsp; &nbsp; // get value of loop variable (from
+        command-line
+        argument)</b> </p>
+    <p><tt></tt><tt>&nbsp;&nbsp; if ((shmId = shmget (IPC_PRIVATE, SIZE,
+        IPC_CREAT|S_IRUSR|S_IWUSR)) &lt; 0) {</tt><br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; perror ("i can't get no..\n");</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; exit (1);</tt> <br>
+      <tt>&nbsp;&nbsp; }</tt> <br>
+      <tt>&nbsp;&nbsp; if ((shmPtr = shmat (shmId, 0, 0)) == (void*) -1)
+        {</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; perror ("can't attach\n");</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; exit (1);</tt> <br>
+      <tt>&nbsp;&nbsp; }</tt> </p>
+    <p><tt>&nbsp;&nbsp; shmPtr[0] = 0;</tt> <br>
+      <tt>&nbsp;&nbsp; shmPtr[1] = 1;</tt> </p>
+    <p><tt>&nbsp;&nbsp; if (!(pid = fork())) {</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (i=0; i&lt;loop; i++) {</tt>
+      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <b>// swap
+        the contents of shmPtr[0] and shmPtr[1]</b> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (shmdt (shmPtr) &lt; 0) {</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; perror ("just
+        can't let go\n");</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; exit (1);</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; exit(0);</tt> <br>
+      <tt>&nbsp;&nbsp; }</tt> <br>
+      <tt>&nbsp;&nbsp; else</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (i=0; i&lt;loop; i++) {</tt>
+      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <b>// swap the contents of
+        shmPtr[1] and shmPtr[0]</b> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</tt> </p>
+    <p><tt>&nbsp;&nbsp; wait (&amp;status);</tt> <br>
+      <tt>&nbsp;&nbsp; printf ("values: %li\t%li\n", shmPtr[0],
+        shmPtr[1]);</tt>
+    </p>
+    <p><tt>&nbsp;&nbsp; if (shmdt (shmPtr) &lt; 0) {</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; perror ("just can't let go\n");</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; exit (1);</tt> <br>
+      <tt>&nbsp;&nbsp; }</tt> <br>
+      <tt>&nbsp;&nbsp; if (shmctl (shmId, IPC_RMID, 0) &lt; 0) {</tt> <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; perror ("can't deallocate\n");</tt>
+      <br>
+      <tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; exit(1);</tt> <br>
+      <tt>&nbsp;&nbsp; }</tt> </p>
+    <p><tt>&nbsp;&nbsp; return 0;</tt> <br>
+      <tt>}</tt> <br>
+      &nbsp; </p>
+    <p><b>Perform the following operations and answer the questions:</b>
+    </p>
+    <ul>
+      <li> study the Sample Program</li>
+      <li>add the necessary code to implement the three comments (in bold)<b><br>
+        </b></li>
+      <ul>
+        <li> you will need to adjust the function heading for <b><tt>main()</tt></b>
+          and insert&nbsp;code to grab the argument to be stored into
+          the
+          variable <b><tt>loop<br>
+            </tt></b></li>
+        <li> the <b><tt>temp</tt></b> variable is provided for your
+          "swap"
+          code</li>
+      </ul>
+    </ul>
+    <ol>
+      <li> what exactly does Sample Program 1 intend to do (i.e. who is
+        responsible for what operations)?</li>
+      <li>given that, what is the program's expected output?</li>
+    </ol>
+    <ul>
+      <li> compile Sample Program 1</li>
+      <li> run the program multiple times with increasing <b><tt>loop</tt></b>
+        values (e.g. 10, 100, 1000, ...) until you observe <i>interesting
+and
+          unexpected</i>
+        results.<span style="font-family: monospace; font-weight: bold;"></span><br>
+      </li>
+    </ul>
+    <ol start="3">
+      <li> describe the output of the Sample Program as the <b><tt>loop</tt></b>
+        values increase</li>
+      <li> describe <i>precisely</i>
+what is happening to produce the observed interesting output.
+&nbsp;Your answer should tie in to the concepts discussed in Chapter 5 of your textbook --
+Process Synchronization.<br>
+      </li>
+    </ol>
+    
+    <h3></h3>
+    <h3>Shared Memory Synchronization</h3>
+    This lab concerns itself primarily with mechanisms for controlling
+    access to shared memory; specifically, it introduces
+    semaphores.&nbsp;
+    Like shared memory, semaphores are a kernel
+    resource and follow the familiar resource usage pattern: request,
+    use,
+    release.
+    <p>For semaphores, the resource usage paradigm is expressed as
+      follows:
+    </p>
+    <blockquote>a)&nbsp; obtain a semaphore set (often of size 1) <br>
+      b)&nbsp; initialize the semaphore element(s) <br>
+      c)&nbsp; use the semaphores correctly (i.e. <b><tt>wait()...signal()</tt></b>)<br>
+      d)&nbsp; remove the kernel resource data structure</blockquote>
+    Each of the steps above has an associated system call.&nbsp; The
+    system
+    calls are very similar to the calls used for shared memory.&nbsp;
+    One
+    of
+    the main differences is that the functions are constructed to work
+    with
+    "sets" of semaphores - however, they can easily be used to
+    manipulate a
+    single semaphore.&nbsp; The functions corresponding to the above
+    steps
+    are:
+    <blockquote>a)&nbsp; <b><tt>semget()</tt></b> - this function
+      creates
+      a
+      semaphore set and initializes its elements to 0.&nbsp; It
+      initializes a
+      kernel data structure for operating system management of the
+      resource
+      and returns a resource ID to the user.&nbsp; This ID is used by
+      any
+      process wishing to use the semaphore. <br>
+      b)&nbsp; <b><tt>semctl()</tt></b> - used for controlling the
+      resource.&nbsp; This function is typically used to set (i.e.
+      initialize)
+      or query the values of semaphore elements. <br>
+      c)&nbsp; <b><tt>semop()</tt></b> - used for incrementing,
+      decrementing
+      and testing the value of semaphore elements. <br>
+      d)&nbsp; <b><tt>semctl()</tt></b> - used for controlling the
+      resource.&nbsp; This function&nbsp; is also used to "free" the
+      resource;
+      removing the semaphore and its associated data structures from the
+      system.</blockquote>
+    Refer to the man pages for additional details on semaphore operation
+    (you may also find the include files <tt>bits/ipc.h</tt> , <tt>sys/sem.h</tt>
+    and <span style="font-family: monospace;">bits/sem.h</span>
+    useful).
+    <p>The code snippets below demonstrate the use of these system
+      calls: </p>
+    <p>/*&nbsp; create a new semaphore set for use by this (and other) processes.. <br>
+      */ <br>
+      <b><tt>semId = semget (IPC_PRIVATE, 1, 00600));</tt></b> </p>
+    <p>/*&nbsp;&nbsp;initialize the semaphore set referenced by
+      the
+      previously obtained <b><tt>semId</tt></b> handle. <br>
+      */ <br>
+      <b><tt>semctl (semId, 0, SETVAL, 1);</tt></b> </p>
+    <p>/*&nbsp; the <b><tt>semop()</tt></b> function is used to perform
+      operations on semaphore elements (for example, to do the
+      equivalent of
+      the Wait() and Signal() operations).&nbsp; <b><tt>semId</tt></b>
+      is
+      the
+      semaphore set ID obtained previously, <b><tt>sbuf</tt></b> is the
+      name
+      of a user variable (i.e. a data object) of type <b><tt>sembuf</tt></b>.&nbsp;
+The
+values
+of
+      the <b><tt>sembuf</tt></b> structure are filled in by
+      the
+      user and used by the system to determine the nature of the operation to be
+      performed.&nbsp;
+      Refer to the man pages and the <tt><font size="+1">.h</font></tt>
+      files
+      for more detail on this structure and its use. <br>
+      */ <br>
+      <b><tt>semop (semId, &amp;sbuf, 1);</tt></b> </p>
+    <p>//&nbsp; remove the semaphore referenced by <b><tt>semId</tt></b>
+      <br>
+      <b><tt>semctl (semId, 0, IPC_RMID);</tt></b> </p>
+    <p>Note that the <b><tt>semctl()</tt></b> function call is
+      used
+      for initializing and also for removing the semaphore.&nbsp; It
+      uses a
+      different syntax (and a different number of arguments) depending
+      on the
+      usage desired. </p>
+    <p><b>Perform the following operations:</b> </p>
+    <ol start="5">
+      <li> name and describe in your own words the use of the three
+        fields
+        of the <b><tt>sembuf</tt></b> structure</li>
+      <li> what is the purpose of the <b><tt>SEM_UNDO</tt></b> flag (i.e. why would you use it)?</li>
+      <ol>
+      </ol>
+      <ol>
+      </ol>
+      <ul>
+        <li> Note: make sure you
+          truly understand what this flag does.</li>
+      </ul>
+      <ol>
+      </ol>
+      <ol>
+      </ol>
+    </ol>
+    <ol start="5">
+      <ol>
+      </ol>
+    </ol>
+    <h3>&nbsp;<br>
+    </h3>
+    <h3> Miscellaneous Notes</h3>
+    <ul>
+      <li> Recall that the system utility "<b><tt>ipcs</tt></b>" (IPC
+        status) displays information about currently allocated kernel
+        IPC
+        resources, including semaphores.&nbsp; The system utility "<b><tt>ipcrm</tt></b>"
+        (IPC
+        remove)
+        is used for semaphore removal.&nbsp; Use this utility to
+        clean up resources in the event of programming errors.</li>
+      <li> The process that creates shared memory or semaphores should
+        be
+        responsible for:</li>
+      <ul>
+        <li> creation</li>
+        <li> verifying that no segment or semaphore set with the same ID
+          number exists</li>
+        <li> establishing access permissions</li>
+        <li> cleanup and deallocation</li>
+      </ul>
+      <li> All of these tasks are controlled by the flags passed to the
+        respective <b><tt>get()</tt></b> and <b><tt>ctl()</tt></b>
+        functions.&nbsp; As usual, read the man pages!&nbsp;</li><li>Similar
+to signals, there are both&nbsp;System V and&nbsp;POSIX versions of semaphores.
+&nbsp;All systems implement the SysV version (which you should use for
+this lab). &nbsp;Some systems also include POSIX semaphores, which are sometimes reserved for real-time threads.</li>
+    </ul>
+    <h3>&nbsp;<br>
+    </h3>
+    <h3>Programming Assignment (Controlled Process Synchronization)</h3>
+    The programmer's goal is to implement controlled, asynchronous
+    access
+    to shared memory; in this lab it is to properly synchronize access
+    to
+    the critical sections of&nbsp;Sample Program 1.&nbsp; The
+    main idea
+    of this assignment is to demonstrate that with the use of proper
+    synchronization mechanisms, the expected value is <span style="font-style: italic;">always</span> obtained
+    from
+    the program.
+    <ul>
+      <li> Protect<span style="font-style: italic;"> </span>the
+        critical
+        sections in Sample Program 1 to prevent
+        memory access conflicts from causing inconsistencies in the
+        output.&nbsp; Your
+        solution should still maximize potential parallelism.<br>
+      </li>
+      <ul>
+        <li> insert the appropriate code to create and initialize a
+          semaphore</li>
+        <li> use semaphore operations to synchronize the two processes</li>
+        <li> perform required cleanup operations</li>
+        <li> test that your Sample Program works correctly</li>
+      </ul>
+    </ul>
+    <b>Note:</b>&nbsp; Semaphore creation and initialization are two
+    different, hence non-atomic operations.&nbsp; Be sure they have both
+    been completed before another process attempts to access the
+    semaphore.<br>
+    <h3><br>
+    </h3>
+    <h3>Extra Credit (Semaphore Toolkit)<br>
+    </h3>Although
+their functionality is identical, these real-world semaphore operations
+look very different from&nbsp;the versions presented in class (and found in the textbook).
+&nbsp;Can the differences be reconciled?<br><br>Create your own library consisting of a complete
+semaphore toolkit.&nbsp; The idea is to be able to make simple function
+calls to your library that look similar to the semaphore operations 
+described in class and in the textbook.&nbsp; Your library should
+provide&nbsp;functionality to create, initialize, wait,
+signal, and destroy a semaphore.&nbsp; For example:<br>
+    <ul>
+      <li>the prototype '<span style="font-family: monospace;">void Wait
+          (int);</span>'&nbsp;&nbsp;declares the familiar 'wait(S)' function, and is found in an include file</li>
+      <li>the actual code for the <span style="font-family: monospace;">Wait()</span>
+        function
+        would be defined and compiled into your library, and linked into your program</li>
+      <li>the function would be used by a program as in '<span style="font-family: monospace;">Wait (semID);</span>'</li>
+    </ul>
+    This
+    toolkit can then be re-used in the future whenever you are writing a program that requires process
+    synchronization.<br>
+    <br>
+    To create a library (toolkit):<br>
+    <ul>
+      <li>for a static library, begin by looking at <span style="font-weight: bold;">ar </span>and/or <span style="font-weight: bold;">ranlib</span></li>
+      <li>for a dynamicly-linked library, look for the appropriate compiler
+        options
+        to specify <span style="font-style: italic;">position-independent code</span> and code-sharing<br>
+      </li>
+    </ul>
+    <br>
+    <br>
+  </body></html>
