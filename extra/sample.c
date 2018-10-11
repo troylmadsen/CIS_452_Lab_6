@@ -28,29 +28,35 @@ int main ( int argc, char** argv )
 	// get value of loop variable (from command-line argument)
 	loop = atoi( argv[1] );
 
-	/* Create semaphore */
+	/* Create key for semaphore creation */
 	key_t sem_key;
 	if ( ( sem_key = ftok( FILENAME, 1 ) ) == (key_t)-1 ) {
 		perror( "ftok error" );
 		exit( 1 );
 	}
 
+	/* Create semaphore */
 	int sem_id;
 	sem_id = Create( sem_key );
 	Initialize( sem_id );
 
+	/* Get shared memory space */
 	if ( ( shmId = shmget( IPC_PRIVATE, SIZE, IPC_CREAT|S_IRUSR|S_IWUSR ) ) < 0 ) {
 		perror( "i can't get no..\n" );
 		exit( 1 );
 	}
+
+	/* Attach to shared memory space */
 	if ( ( shmPtr = shmat( shmId, 0, 0 ) ) == (void*) -1 ) {
 		perror( "can't attach\n" );
 		exit( 1 );
 	}
 
+	/* Initializing shared memory space */
 	shmPtr[0] = 0;
 	shmPtr[1] = 1;
 
+	/* Create second process to execute */
 	if ( !( pid = fork() ) ) {
 		for ( i = 0; i < loop; i++ ) {
 			// swap the contents of shmPtr[0] and shmPtr[1]
@@ -89,11 +95,13 @@ int main ( int argc, char** argv )
 		wait( &status );
 		printf( "values: %li\t%li\n", shmPtr[0], shmPtr[1] );
 
+		/* Detach from shared memory space */
 		if ( shmdt( shmPtr ) < 0 ) {
 			perror( "just can't let go\n" );
 			exit( 1 );
 		}
 
+		/* Mark shared memory space for deletion */
 		if ( shmctl( shmId, IPC_RMID, 0 ) < 0 ) {
 			perror( "can't deallocate\n" );
 			exit( 1 );

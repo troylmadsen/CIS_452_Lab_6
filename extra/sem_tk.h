@@ -15,10 +15,22 @@
  * @Date 2018/10/10
  */
 
+/*
+ * Creates a semaphore using the specified key.
+ * @param key Key of the semaphore to create.
+ */
 int Create( key_t key );
 
+/*
+ * Destroys a semaphore specified by the ID.
+ * @param sem_id ID of the semaphore to destroy.
+ */
 void Destroy( int sem_id );
 
+/*
+ * Initializes the semaphore sepecified by the ID.
+ * @param sem_id ID of semaphore to initialize.
+ */
 void Initialize( int sem_id );
 
 /*

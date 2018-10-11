@@ -11,6 +11,10 @@
 struct sembuf lock[] = { { 0, -1, 0 } };
 struct sembuf unlock[] = { { 0, 1, 0 }};
 
+/*
+ * Creates a semaphore using the specified key.
+ * @param key Key of the semaphore to create.
+ */
 int Create( key_t sem_key ) {
 	int sem_id;
 
@@ -22,6 +26,10 @@ int Create( key_t sem_key ) {
 	return sem_id;
 }
 
+/*
+ * Destroys a semaphore specified by the ID.
+ * @param sem_id ID of the semaphore to destroy.
+ */
 void Destroy( int sem_id ) {
 	if ( semctl( sem_id, 0, IPC_RMID, 0 ) != 0 ) {
 		perror( "Semaphore removal failure" );
@@ -29,6 +37,10 @@ void Destroy( int sem_id ) {
 	}
 }
 
+/*
+ * Initializes the semaphore sepecified by the ID.
+ * @param sem_id ID of semaphore to initialize.
+ */
 void Initialize( int sem_id ) {
 	if ( semop( sem_id, unlock, 1 ) == -1 ) {
 		perror( "Semaphore initialization failure" );
