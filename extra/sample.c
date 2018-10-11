@@ -10,6 +10,7 @@
 
 #include "sem_tk.h"
 
+#define FILENAME "./sample.c"
 #define SIZE 16
 
 /*
@@ -32,7 +33,7 @@ int main ( int argc, char** argv )
 
 	/* Create semaphore */
 	key_t sem_key;
-	if ( ( sem_key = ftok( "./sample1.c", 1 ) ) == (key_t)-1 ) {
+	if ( ( sem_key = ftok( FILENAME, 1 ) ) == (key_t)-1 ) {
 		perror( "ftok error" );
 		exit( 1 );
 	}
