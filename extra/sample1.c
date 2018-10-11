@@ -8,6 +8,8 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 
+#include "sem_tk.h"
+
 #define SIZE 16
 
 /*
@@ -25,38 +27,19 @@ int main ( int argc, char** argv )
 	int shmId;
 	pid_t pid;
 
-	/* Create sembufs for semaphores */
-	struct sembuf lock[1];
-	struct sembuf unlock[1];
-
-	/* Initialize sembufs */
-	lock[0].sem_num = 0;
-	lock[0].sem_op = -1;
-	lock[0].sem_flg = 0;
-	unlock[0].sem_num = 0;
-	unlock[0].sem_op = 1;
-	unlock[0].sem_flg = 0;
-
 	// get value of loop variable (from command-line argument)
 	loop = atoi( argv[1] );
 
 	/* Create semaphore */
 	key_t sem_key;
-	int sem_id;
 	if ( ( sem_key = ftok( "./sample1.c", 1 ) ) == (key_t)-1 ) {
 		perror( "ftok error" );
 		exit( 1 );
 	}
 
-	if ( ( sem_id = semget( sem_key, 1, IPC_CREAT | S_IRUSR | S_IWUSR ) ) == -1 ) {
-		perror( "semget error" );
-		exit( 1 );
-	}
-
-	if ( semop( sem_id, unlock, 1 ) == -1 ) {
-		perror( "semop error" );
-		exit( 1 );
-	}
+	int sem_id;
+	sem_id = Create( sem_key );
+	Initialize( sem_id );
 
 	if ( ( shmId = shmget( IPC_PRIVATE, SIZE, IPC_CREAT|S_IRUSR|S_IWUSR ) ) < 0 ) {
 		perror( "i can't get no..\n" );
@@ -75,20 +58,14 @@ int main ( int argc, char** argv )
 			// swap the contents of shmPtr[0] and shmPtr[1]
 			
 			/* Acquire semaphore */
-			if ( semop( sem_id, lock, 1 ) == -1 ) {
-				perror( "semop error" );
-				exit( 1 );
-			}
+			Wait( sem_id );
 
 			temp = shmPtr[0];
 			shmPtr[0] = shmPtr[1];
 			shmPtr[1] = temp;
 
 			/* Release semahpore */
-			if ( semop( sem_id, unlock, 1 ) == -1 ) {
-				perror( "semop error" );
-				exit( 1 );
-			}
+			Signal( sem_id );
 		}
 		if ( shmdt( shmPtr ) < 0 ) {
 			perror( "just can't let go\n" );
@@ -101,20 +78,14 @@ int main ( int argc, char** argv )
 			// swap the contents of shmPtr[1] and shmPtr[0]
 
 			/* Acquire semaphore */
-			if ( semop( sem_id, lock, 1 ) == -1 ) {
-				perror( "semop error" );
-				exit( 1 );
-			}
+			Wait( sem_id );
 
 			temp = shmPtr[1];
 			shmPtr[1] = shmPtr[0];
 			shmPtr[0] = temp;
 
 			/* Release semahpore */
-			if ( semop( sem_id, unlock, 1 ) == -1 ) {
-				perror( "semop error" );
-				exit( 1 );
-			}
+			Signal( sem_id );
 		}
 
 		wait( &status );
@@ -131,10 +102,7 @@ int main ( int argc, char** argv )
 		}
 
 		/* Delete semaphore */
-		if ( semctl( sem_id, 0, IPC_RMID, 0 ) != 0 ) {
-			perror( "semctl error" );
-			exit( 1 );
-		}
+		Destroy( sem_id );
 
 	return 0;
 }
