@@ -14,7 +14,7 @@ libsem_tk.a: sem_tk.h
 
 .PHONY: clean run debug
 clean:
-	-rm $(filename) $(objects) $(static_libs)
+	-rm $(filename) $(objects) $(static_libs) libsem_tk.o
 
 run: $(filename)
 	./$(filename) $(var)
