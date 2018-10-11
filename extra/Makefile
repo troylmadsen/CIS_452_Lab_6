@@ -9,7 +9,8 @@ sample: $(objects) $(static_libs)
 sample.o: sample.c
 	clang -c -o sample.o -Wall sample.c
 libsem_tk.a: sem_tk.h
-	clang -c -o libsem_tk.a sem_tk.c
+	clang -c -o libsem_tk.o sem_tk.c
+	ar rcs libsem_tk.a libsem_tk.o sem_tk.h
 
 .PHONY: clean run debug
 clean:
