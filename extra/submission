@@ -1,0 +1,11 @@
+Script started on 2018-10-11 13:39:21-04:00
+]0;madsentr@eos04:~/CIS_452/labs/6/extra[madsentr@eos04 extra]$ make run
+clang -c -o sample.o -Wall sample.c
+clang -c -o libsem_tk.o sem_tk.c
+ar rcs libsem_tk.a libsem_tk.o sem_tk.h
+clang -o sample -Wall sample.o libsem_tk.a
+./sample 10000000
+values: 0	1
+]0;madsentr@eos04:~/CIS_452/labs/6/extra[madsentr@eos04 extra]$ exit
+
+Script done on 2018-10-11 13:42:00-04:00
